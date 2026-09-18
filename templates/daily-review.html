@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A股主线与情绪复盘 · {{YYYYMMDD}}</title>
+<style>
+/* ============================================================
+   A股主线与情绪复盘 · 标准模板（V3 · UI 视觉语言回填版）
+   ------------------------------------------------------------
+   视觉语言（UI Designer · 像素君 锁定 2026-08-17）
+   1. 信息架构：12 节 → 4 模块（①②③④）+ 节层级编号（1.1 / 1.2 … 4.2）
+   2. 粘性顶栏 + 模块 scrollspy 高亮；Hero 半弧情绪仪表
+   3. 组件化：Metric 卡（line-* 信号类）/ Tag / Table / ThemeCard / 折叠
+   4. 第6节（2.3）保留竖温度计；两温度计渐变统一为绿→黄→红
+   5. 数值信号色全局规则：涨红 / 跌绿 / 中性黄（见下方 .line-*）
+   6. 量能独立规则：放量红 / 缩量绿 / 持平墨
+   7. 可访问性：focus-visible / aria / prefers-reduced-motion
+   8. 铁律：纯内联、零外链、涨红跌绿、偏多红/风险绿/中性黄、零编造
+   ============================================================ */
+
+/* ---------- 1. Design Tokens ---------- */
+:root{
+  --bg:#f4f6f9; --panel:#ffffff; --panel2:#f0f3f7; --panel3:#eef1f6;
+  --border:#e3e7ee; --border-strong:#d4dae4;
+  --txt:#1f2733; --txt-2:#3a4452; --sub:#5b6675; --faint:#8a94a3;
+
+  /* 信号语义层（与数值层同源互补） */
+  --red:#e03131;    --red-soft:rgba(224,49,49,.09);  --red-border:rgba(224,49,49,.42);
+  --green:#0c9d6e;  --green-soft:rgba(12,157,110,.09);--green-border:rgba(12,157,110,.42);
+  --gold:#e8a200;   --gold-soft:rgba(232,162,0,.15); --gold-border:rgba(232,162,0,.5);
+
+  /* 装饰辅助（仅 UI 用途，不用于定性信号） */
+  --ink:#2b3a55; --brand-grad:linear-gradient(135deg,#3b5bdb 0%,#5f3dc4 100%);
+  --shadow-sm:0 1px 2px rgba(31,39,51,.05);
+  --shadow-md:0 4px 14px rgba(31,39,51,.07);
+  --shadow-lg:0 12px 32px rgba(31,39,51,.12);
+  --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-xl:20px;
+  --font-num:"DIN Alternate","Bahnschrift","Segoe UI",-apple-system,sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,"PingFang SC","Microsoft YaHei","Segoe UI",Helvetica,Arial,sans-serif;line-height:1.62;font-size:14px}
+::selection{background:rgba(59,91,219,.14)}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px;border-radius:4px}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.up{color:var(--red)} .down{color:var(--green)} .mid{color:var(--gold)}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:.2px}
+
+/* ---------- 2. 组件库 ---------- */
+/* Metric 卡 */
+.metric{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;position:relative;overflow:hidden;transition:.18s}
+.metric::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3.5px;background:var(--line,var(--faint))}
+.metric:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.metric .k{color:var(--sub);font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
+.metric .k .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.metric .v{font-size:26px;font-weight:800;margin-top:4px;line-height:1.15}
+.metric .v small{font-size:13px;color:var(--sub);font-weight:600;margin-left:2px}
+.metric .d{font-size:12px;color:var(--sub);margin-top:5px;line-height:1.45}
+.metric .d .chg{font-weight:700}
+/* 信号类：决定左侧竖条 + 数值颜色（涨红/跌绿/中性黄/无向墨） */
+.metric.line-red{--line:var(--red);--linebg:var(--red-soft)} .metric.line-green{--line:var(--green)} .metric.line-gold{--line:var(--gold)} .metric.line-ink{--line:var(--ink)}
+/* 数值信号色：与左侧竖条和标签完全一致 */
+.line-red .v.num,.line-red .v{color:var(--red)}
+.line-green .v.num,.line-green .v{color:var(--green)}
+.line-gold .v.num,.line-gold .v{color:var(--gold)}
+.line-ink .v.num,.line-ink .v{color:var(--ink)}
+
+/* Tag */
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:2.5px 9px;border-radius:7px;font-weight:700;white-space:nowrap}
+.tag.t{background:var(--red-soft);color:var(--red)} .tag.w{background:var(--green-soft);color:var(--green)} .tag.m{background:var(--gold-soft);color:var(--gold)}
+.tag.ghost{background:transparent;border:1px solid var(--border);color:var(--sub);font-weight:600}
+.tag.ink{background:rgba(43,59,85,.08);color:var(--ink)}
+
+/* 表格 */
+.tbl-wrap{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden}
+.tbl-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+.tbl-head .tt{font-size:13.5px;font-weight:700}
+.tbl-head .tt i{font-style:normal;margin-right:6px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--panel3);color:var(--sub);font-weight:600;font-size:12px;text-align:left;padding:9px 16px;position:sticky;top:0;z-index:1;border-bottom:1px solid var(--border)}
+tbody td{padding:9px 16px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr{transition:background .12s}
+tbody tr:hover{background:var(--panel2)}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+
+/* ThemeCard */
+.theme{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--faint);border-radius:var(--radius-md);padding:16px 18px;margin-bottom:14px;transition:.18s}
+.theme:hover{box-shadow:var(--shadow-md)}
+.theme.real{border-left-color:var(--red)} .theme.mid{border-left-color:var(--gold)} .theme.trap{border-left-color:var(--green)} .theme.info{border-left-color:var(--ink)}
+.theme h3{font-size:15px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.theme p{font-size:13px;color:var(--txt-2);line-height:1.7}
+.theme p b{color:var(--txt)}
+
+/* 温度计布局（2.3 节 · 竖温度计） */
+.thermo{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
+.thermo .gauge-box{flex:none;display:flex;flex-direction:column;align-items:center;gap:10px}
+.thermo .gauge-box .cap{font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.5px}
+.dims{flex:1;min-width:290px}
+.dim{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:8px;transition:.15s}
+.dim:hover{box-shadow:var(--shadow-sm);border-color:var(--border-strong)}
+.dim .dk{font-size:13px;color:var(--txt-2);display:flex;align-items:center;gap:9px}
+.dim .dk i{display:inline-block;width:8px;height:8px;border-radius:3px;flex:none}
+.dim .lv{font-weight:800;font-size:13.5px;white-space:nowrap}
+
+/* 折叠 */
+details{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden}
+details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:14px 18px;font-size:14.5px;font-weight:700;user-select:none}
+details>summary::-webkit-details-marker{display:none}
+details>summary .arr{margin-left:auto;transition:.2s;color:var(--sub);font-size:12px}
+details[open]>summary .arr{transform:rotate(180deg)}
+details>.body{padding:4px 18px 16px;color:var(--txt-2);font-size:13px;line-height:1.75}
+details>.body b{color:var(--txt)}
+
+/* 警示框 */
+.alert{display:flex;gap:12px;border-radius:var(--radius-md);padding:15px 18px;margin-top:14px;font-size:13px;line-height:1.75}
+.alert .ico{flex:none;font-size:18px;line-height:1.3}
+.alert.warn{background:var(--green-soft);border:1px solid var(--green-border);color:var(--txt-2)}
+.alert.ok{background:var(--red-soft);border:1px solid var(--red-border);color:var(--txt-2)}
+.alert b{color:var(--txt)}
+
+/* 分隔 / 图例 */
+.legend{display:flex;gap:16px;font-size:12px;color:var(--sub);margin:10px 0 2px;flex-wrap:wrap}
+.legend span i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+
+/* ---------- 3. 页面骨架 ---------- */
+/* 粘性顶栏 */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.topbar .inner{max-width:1180px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:18px;height:58px}
+.brand{display:flex;align-items:center;gap:10px;flex:none}
+.brand .logo{width:32px;height:32px;border-radius:9px;background:var(--brand-grad);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:800;box-shadow:var(--shadow-sm)}
+.brand .bt{font-weight:800;font-size:14.5px;letter-spacing:.3px;line-height:1.2}
+.brand .bs{font-size:10.5px;color:var(--sub);font-weight:600;letter-spacing:1.5px}
+.modnav{display:flex;gap:4px;flex:1;overflow-x:auto;scrollbar-width:none}
+.modnav::-webkit-scrollbar{display:none}
+.modnav a{padding:7px 13px;border-radius:9px;font-size:12.5px;font-weight:600;color:var(--sub);white-space:nowrap;transition:.16s;border:1px solid transparent}
+.modnav a:hover{color:var(--ink);background:var(--panel2)}
+.modnav a.active{color:var(--ink);background:var(--panel3);border-color:var(--border-strong)}
+.temp-chip{flex:none;display:flex;align-items:center;gap:7px;background:var(--gold-soft);border:1px solid var(--gold-border);color:var(--gold);border-radius:999px;padding:5px 13px;font-weight:800;font-size:13px}
+.temp-chip small{font-weight:600;font-size:11px;color:var(--sub);display:block;line-height:1;text-align:left}
+
+/* Hero */
+.hero{margin:26px 0 8px}
+.hero .topline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.hero h1{font-size:27px;font-weight:800;letter-spacing:.6px}
+.hero .date-pill{display:inline-flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:6px 14px;font-size:12.5px;color:var(--sub)}
+.hero .date-pill .live{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(12,157,110,.18);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(12,157,110,.18)}50%{box-shadow:0 0 0 6px rgba(12,157,110,.08)}}
+.hero .srcs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.hero-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-xl);box-shadow:var(--shadow-md);padding:22px 24px;display:grid;grid-template-columns:auto 1fr;gap:26px;margin-top:14px}
+.hero-left{display:flex;flex-direction:column;justify-content:center;min-width:0}
+.hero-left .verdict{font-size:14.5px;line-height:1.8;color:var(--txt-2)}
+.hero-left .verdict b{color:var(--txt)}
+.summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:16px;min-width:0}
+.summary-item{background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius-md);padding:11px 14px}
+.summary-item .sk{font-size:11.5px;color:var(--sub);font-weight:600}
+.summary-item .sv{font-size:19px;font-weight:800;margin-top:2px}
+.summary-item .sd{font-size:11px;color:var(--sub);margin-top:1px}
+.hero-note{margin-top:14px}
+
+/* 模块分区 */
+.module{margin:34px 0 8px;display:flex;align-items:center;gap:14px}
+.module .mno{width:38px;height:38px;border-radius:11px;background:var(--brand-grad);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none;box-shadow:var(--shadow-sm)}
+.module .mt{font-size:19px;font-weight:800;letter-spacing:.3px}
+.module .mt small{display:block;font-size:11.5px;color:var(--faint);font-weight:600;letter-spacing:1px}
+.module .line{flex:1;height:1px;background:var(--border)}
+section.block{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:16px;scroll-margin-top:74px;box-shadow:var(--shadow-sm)}
+section.block h2{font-size:17.5px;font-weight:800;display:flex;align-items:center;gap:10px;margin-bottom:4px}
+section.block h2 .idx{background:var(--ink);color:#fff;border-radius:8px;font-size:11px;padding:2px 8px;font-weight:800;flex:none;min-width:28px;text-align:center}
+section.block .note{color:var(--sub);font-size:12.5px;margin:4px 0 16px;line-height:1.75}
+section.block .note b{color:var(--txt)}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)} .g5{grid-template-columns:repeat(5,1fr)}
+@media(max-width:960px){.g4,.g5{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.g2,.g3{grid-template-columns:1fr}.hero-card{grid-template-columns:1fr}.g4,.g5{grid-template-columns:1fr}}
+.disc{color:var(--faint);font-size:11.5px;margin-top:14px;border-top:1px dashed var(--border);padding-top:12px;line-height:1.75}
+.disc b{color:var(--sub)}
+ul{list-style:none;margin:4px 0 0}
+ul li{padding:5px 0 5px 22px;position:relative;font-size:13px;color:var(--txt-2)}
+ul li::before{content:"";position:absolute;left:6px;top:13px;width:6px;height:6px;border-radius:2px;background:var(--gold)}
+ul li b{color:var(--txt)}
+.grid-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.grid-2col{grid-template-columns:1fr}}
+
+/* Tab */
+.tabs{display:inline-flex;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px}
+.tabs button{border:none;background:transparent;padding:6px 14px;border-radius:8px;font-size:12.5px;font-weight:700;color:var(--sub);cursor:pointer;transition:.16s}
+.tabs button.on{background:var(--panel);color:var(--ink);box-shadow:var(--shadow-sm)}
+.tab-pane{display:none}
+.tab-pane.on{display:block;animation:fadein .25s}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* 返回顶部 */
+.totop{position:fixed;right:22px;bottom:26px;width:44px;height:44px;border-radius:13px;background:var(--ink);color:#fff;border:none;font-size:17px;cursor:pointer;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:.25s;z-index:90}
+.totop.show{opacity:1;pointer-events:auto}
+.totop:hover{transform:translateY(-3px)}
+.footer{margin:40px 0 20px;padding-top:18px;border-top:1px solid var(--border);color:var(--faint);font-size:11.5px;line-height:1.8;text-align:center}
+.footer b{color:var(--sub)}
+</style>
+</head>
+<body>
+
+<!--
+  ╔════════════════════════════════════════════════════════════════════════╗
+  ║  信号色约定（每日填充时按真实方向设置 metric 的 line-* 类）              ║
+  ║  line-red   = 涨 / 偏多      → 数值红（指数涨、外围涨、融资升、平均股价涨）║
+  ║  line-green = 跌 / 风险      → 数值绿（缩量、跌停、连板退潮、上涨占比低）  ║
+  ║  line-gold  = 中性 / 无方向性 → 数值黄（涨跌比、封板率、情绪温度52°）      ║
+  ║  line-ink   = 无方向信息      → 数值墨（对A股映射、沪/深分拆、首板强催化）  ║
+  ║  量能独立：放量=line-red / 缩量=line-green / 持平=line-ink                ║
+  ║  卡内含双色数字（如涨停/跌停）用 <span class="up">/class="down"> 覆盖      ║
+  ╚════════════════════════════════════════════════════════════════════════╝
+-->
+
+<nav class="topbar" aria-label="模块导航">
+  <div class="inner">
+    <div class="brand"><div class="logo">情</div><div><div class="bt">情绪温度复盘</div><div class="bs">SENTIMENT DAILY</div></div></div>
+    <div class="modnav" id="modnav">
+      <a href="#m1" data-sec="m1">市场总览</a>
+      <a href="#m2" data-sec="m2">情绪量化</a>
+      <a href="#m3" data-sec="m3">主线资金</a>
+      <a href="#m4" data-sec="m4">决策输出</a>
+    </div>
+    <div class="temp-chip">{{温度}}°<small>{{温度定性}}·{{温度较昨}}</small></div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+<!-- Hero -->
+<header class="hero">
+  <div class="topline">
+    <h1>A股主线与情绪复盘</h1>
+    <span class="date-pill"><span class="live"></span>交易日 {{YYYYMMDD}}（{{星期}}）· 真实收盘数据</span>
+  </div>
+  <div class="srcs">
+    <span class="tag ink">WeStock</span><span class="tag ink">通达信 TDX 全市场扫描</span><span class="tag ink">妙想(东财)</span><span class="tag ink">公开聚合</span><span class="tag ghost">框架：i问财·市场情绪分析</span>
+  </div>
+  <div class="hero-card">
+    <div class="hero-left">
+      <div class="verdict">{{复盘定性}}：{{复盘总览句}}</div>
+      <div class="summary-grid">
+        <div class="summary-item"><div class="sk">全市场成交</div><div class="sv num" style="color:var(--green)">{{成交万亿}}<span style="font-size:12px;color:var(--sub)">万亿</span></div><div class="sd down">▼ {{量能变化}}</div></div>
+        <div class="summary-item"><div class="sk">涨停 / 跌停</div><div class="sv num"><span class="up" style="color:var(--red);font-size:22px">{{涨停}}</span> <span style="color:var(--sub)">/</span> <span class="down" style="color:var(--green);font-size:22px">{{跌停}}</span></div><div class="sd">封板率 {{封板率}}% · 炸板 {{炸板}}</div></div>
+        <div class="summary-item"><div class="sk">上涨占比</div><div class="sv num" style="color:var(--green)">{{上涨占比}}%</div><div class="sd mid">涨跌比 {{涨跌比}} · 跌多涨少</div></div>
+        <div class="summary-item"><div class="sk">连板晋级率</div><div class="sv num" style="color:var(--green)">~{{晋级率}}%</div><div class="sd down">较昨日{{晋级率昨日}} · {{最高板}}跌停</div></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center">
+      <svg class="gauge-arc" width="196" height="156" viewBox="0 0 196 156" data-temp="{{温度}}" role="img" aria-label="情绪温度 {{温度}} 度，{{温度定性}}区间">
+        <defs>
+          <linearGradient id="gseg" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#0c9d6e"/><stop offset="50%" stop-color="#e8a200"/><stop offset="100%" stop-color="#e03131"/>
+          </linearGradient>
+        </defs>
+        <path d="M 18 104 A 80 80 0 0 1 178 104" fill="none" stroke="#eef1f6" stroke-width="17" stroke-linecap="round"/>
+        <path class="gauge-fill" d="M 18 104 A 80 80 0 0 1 178 104" fill="none" stroke="url(#gseg)" stroke-width="17" stroke-linecap="round"
+              stroke-dasharray="251.3" stroke-dashoffset="120.6" opacity="1"/>
+        <line class="gauge-needle" x1="98" y1="104" x2="102" y2="42" stroke="#1f2733" stroke-width="3.5" stroke-linecap="round"/>
+        <circle cx="98" cy="104" r="6" fill="#1f2733"/>
+        <text class="gauge-val" x="98" y="138" text-anchor="middle" font-size="28" font-weight="800" fill="#1f2733" font-family="DIN Alternate,Bahnschrift,sans-serif">{{温度}}°</text>
+        <text x="98" y="154" text-anchor="middle" font-size="11" font-weight="600" fill="#5b6675">{{温度定性}} · {{温度较昨}}</text>
+        <text x="8" y="130" font-size="10" fill="#8a94a3" font-weight="600">0° 冷</text>
+        <text x="160" y="130" font-size="10" fill="#8a94a3" font-weight="600">100° 热</text>
+      </svg>
+    </div>
+  </div>
+  <div class="hero-note">
+    <details>
+      <summary>📌 数据口径说明 <span class="arr">▾</span></summary>
+      <div class="body">数据口径说明：指数/板块/主力资金/融资余额取自 <b style="color:var(--gold)">TDX 收盘真实值 + 妙想(东财)自动化/公开聚合交叉验证</b>；市场广度、涨停/跌停/炸板/连板/平均股价/昨日涨停/昨日连板等短线指标来自<b style="color:var(--gold)">通达信(TDX)全市场扫描</b>；<b style="color:var(--gold)">PCR 取上交所最新可得（{{PCR日期}}，上证50ETF 认沽认购比 {{PCR值}}，标注滞后）</b>；全市场融资余额按 <b>T+1 填报前一日（{{融资余额日期}}，东方财富全市场口径 {{融资余额}} 亿；融券新规后趋零，两融≈融资）</b>；外围取 {{外围日期}} 美股收盘，为本交易日盘前最新参照。<b style="color:var(--red)">北向资金净额自 2024-08-19 官方取消日频披露，本报告不含该字段</b>。</div>
+    </details>
+  </div>
+</header>
+
+<!-- ===== 模块一：市场总览 ===== -->
+<div class="module" id="m1"><span class="mno">1</span><div class="mt">市场总览<small>MARKET OVERVIEW</small></div><div class="line"></div></div>
+
+<section class="block">
+  <h2><span class="idx">1.1</span>大盘画像 · {{大盘定性}}</h2>
+  <div class="note">{{大盘note}}</div>
+  <div class="grid g5">
+    <div class="metric line-red"><div class="k">上证指数</div><div class="v num">{{上证数值}}</div><div class="d"><span class="chg up">▲ {{上证涨跌幅}}</span>（{{上证额}}）</div></div>
+    <div class="metric line-red"><div class="k">深证成指</div><div class="v num">{{深证数值}}</div><div class="d"><span class="chg up">▲ {{深证涨跌幅}}</span>（{{深证额}}）</div></div>
+    <div class="metric line-red"><div class="k">创业板指</div><div class="v num">{{创业数值}}</div><div class="d"><span class="chg up">▲ {{创业涨跌幅}}</span>（{{创业额}}）</div></div>
+    <div class="metric line-red"><div class="k">科创综指</div><div class="v num">{{科创数值}}</div><div class="d"><span class="chg up">▲ {{科创涨跌幅}}</span>（TDX·科创价格000681）</div></div>
+    <div class="metric line-green"><div class="k">全市场成交额</div><div class="v num">{{成交万亿}}<small>万亿</small></div><div class="d"><span class="chg down">▼ {{量能变化}}</span></div></div>
+  </div>
+</section>
+
+<section class="block">
+  <h2><span class="idx">1.2</span>外围市场 · {{外围日期}} 美股收盘（本交易日盘前最新参照）</h2>
+  <div class="note">{{外围note}}</div>
+  <div class="grid g3">
+    <div class="metric line-red"><div class="k">道琼斯</div><div class="v num">+{{道指涨}}%</div><div class="d">{{道指数值}} · 微涨</div></div>
+    <div class="metric line-red"><div class="k">纳斯达克</div><div class="v num">+{{纳指涨}}%</div><div class="d">{{纳指数值}} · 阶段新高</div></div>
+    <div class="metric line-red"><div class="k">标普500</div><div class="v num">+{{标普涨}}%</div><div class="d">{{标普数值}} · 集体收涨</div></div>
+    <div class="metric line-red"><div class="k">存储板块</div><div class="v num" style="font-size:22px">大涨</div><div class="d">{{存储说明}}</div></div>
+    <div class="metric line-green"><div class="k">光通信（Coherent等）</div><div class="v num" style="font-size:22px">−{{光通信跌幅}}%</div><div class="d">{{光通信说明}}</div></div>
+    <div class="metric line-ink"><div class="k">对A股映射</div><div class="v" style="font-size:20px;font-weight:800">内生催化</div><div class="d">{{映射说明}}</div></div>
+  </div>
+</section>
+
+<section class="block">
+  <h2><span class="idx">1.3</span>量能与资金 · {{量能定性}}</h2>
+  <div class="note">{{量能note}}</div>
+  <div class="grid g4">
+    <div class="metric line-green"><div class="k">全市场成交额</div><div class="v num">{{成交万亿}}<small>万亿</small></div><div class="d"><span class="chg down">▼ {{量能变化}}</span>（缩量反抽）</div></div>
+    <div class="metric line-ink"><div class="k">沪市 / 深市成交</div><div class="v num" style="font-size:22px">{{沪成交}} <span style="color:var(--sub);font-size:13px">/</span> {{深成交}}<small>万亿</small></div><div class="d">深市更活跃·深占比约{{深占比}}</div></div>
+    <div class="metric line-red"><div class="k">平均股价（加权·TDX）</div><div class="v num">+{{平均股价涨}}%</div><div class="d">较昨日{{平均股价对比}}</div></div>
+    <div class="metric line-red"><div class="k">融资余额(T+1·{{融资余额日期}})</div><div class="v num" style="font-size:23px">{{融资余额}}<small>亿</small></div><div class="d">东财全市场口径·{{融资变化}}·{{连升}}</div></div>
+  </div>
+  <div class="disc">注：沪市/深市成交为 TDX 真实分市场数据（沪约{{沪成交}}万亿+深约{{深成交}}万亿≈{{成交万亿}}万亿，较昨日{{量能较昨}}）；融资余额取自东方财富全市场口径（截至{{融资余额日期}} 两市融资余额 {{融资余额}} 亿，沪{{沪融资}}+深{{深融资}}，{{融资变化}}；提醒：妙想聚合值对融资余额全市场口径曾系统性低估约 1150 亿，本报告采用东方财富全市场披露值；<b>北向资金净额自 2024-08-19 官方取消日频披露，本报告不含该字段</b>。</div>
+</section>
+
+<!-- ===== 模块二：情绪量化 ===== -->
+<div class="module" id="m2"><span class="mno">2</span><div class="mt">情绪量化<small>SENTIMENT QUANT</small></div><div class="line"></div></div>
+
+<section class="block">
+  <h2><span class="idx">2.1</span>短线情绪 · {{短线定性}}</h2>
+  <div class="note">{{短线note}}</div>
+  <div class="grid g4">
+    <div class="metric line-red"><div class="k">涨停 / 跌停</div><div class="v num"><span class="up">{{涨停}}</span> <span style="color:var(--sub);font-size:17px">/</span> <span class="down">{{跌停}}</span></div><div class="d">通达信全扫描（{{跌停}}只真实跌停）</div></div>
+    <div class="metric line-gold"><div class="k">炸板率 / 封板率</div><div class="v num">{{炸板}}<small>家</small></div><div class="d">封板率约 {{封板率}}% · 炸板{{炸板}}/涨停{{涨停}}</div></div>
+    <div class="metric line-green"><div class="k">昨日涨停今日表现</div><div class="v num">−{{昨涨表现}}</div><div class="d">通达信880863；昨日连板−{{昨连表现}}</div></div>
+    <div class="metric line-green"><div class="k">连板晋级率</div><div class="v num">~{{晋级率}}%</div><div class="d">{{连板成分}}只成分仅{{续封}}续封·{{最高板}}跌停</div></div>
+  </div>
+  <div class="tbl-wrap" style="margin-top:14px">
+    <div class="tbl-head"><span class="tt"><i>🪤</i>今日领跌 / 反向方向（真实跌停 &amp; 断板）</span></div>
+    <table>
+      <thead><tr><th>方向</th><th>代表标的</th><th class="r">表现</th><th>备注</th></tr></thead>
+      <tbody>
+        {{领跌行}}
+      </tbody>
+    </table>
+  </div>
+  <div class="alert warn" style="margin-top:14px">
+    <span class="ico">🔍</span>
+    <div><b style="color:var(--green)">主线复盘深度解读 · {{主线}}：{{前日判断修正说明}}</b>
+      <p style="margin-top:8px">{{主线深度解读}}</p>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <h2><span class="idx">2.2</span>市场广度 · {{广度定性}}</h2>
+  <div class="note">{{广度note}}</div>
+  <div class="grid g4">
+    <div class="metric line-ink"><div class="k">上涨 / 下跌</div><div class="v num">{{上涨}} <span style="color:var(--sub);font-size:16px">/</span> {{下跌}}</div><div class="d">平盘 {{平盘}} · 合计 {{合计}}（TDX）</div></div>
+    <div class="metric line-red"><div class="k">涨停 / 跌停</div><div class="v num"><span class="up">{{涨停}}</span> <span style="color:var(--sub);font-size:16px">/</span> <span class="down">{{跌停}}</span></div><div class="d">通达信全扫描（{{跌停}}只真实跌停）</div></div>
+    <div class="metric line-gold"><div class="k">涨跌比</div><div class="v num">{{涨跌比}}</div><div class="d">{{广度对比}}</div></div>
+    <div class="metric line-green"><div class="k">上涨占比</div><div class="v num">{{上涨占比}}%</div><div class="d">较昨日{{上涨占比对比}}·分化</div></div>
+  </div>
+  <div class="disc">注：本日涨跌家数取自通达信全市场扫描（上涨{{上涨}}/下跌{{下跌}}/平盘{{平盘}}，合计{{合计}}）；详细的「涨跌幅区间分布」直方图未做全扫描，此处以家数口径呈现，未做区间推断。</div>
+</section>
+
+<section class="block">
+  <h2><span class="idx">2.3</span>定量化情绪温度 · {{温度}}°（{{温度定性}}）</h2>
+  <div class="note">{{温度note}}</div>
+  <div class="thermo">
+    <div class="gauge-box">
+      <span class="cap">情绪温度计 · {{温度}}°</span>
+      <svg class="gauge-thermo" width="150" height="300" viewBox="0 0 150 300" data-temp="{{温度}}" role="img" aria-label="情绪温度 {{温度}} 度">
+        <defs><linearGradient id="tg" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#0c9d6e"/><stop offset="50%" stop-color="#e8a200"/><stop offset="100%" stop-color="#e03131"/>
+        </linearGradient></defs>
+        <rect x="62" y="20" width="26" height="220" rx="13" fill="#eef2f7" stroke="#cfd6df"/>
+        <rect class="tg-fill" x="64" y="130.4" width="22" height="109.6" rx="11" fill="url(#tg)"/>
+        <circle cx="75" cy="262" r="26" fill="url(#tg)"/>
+        <circle cx="75" cy="262" r="26" fill="none" stroke="#cfd6df"/>
+        <line class="tg-line" x1="64" y1="130.4" x2="86" y2="130.4" stroke="#1f2733" stroke-width="2" opacity=".9"/>
+        <text class="tg-num" x="75" y="126" fill="#1f2733" font-size="13" font-weight="800" text-anchor="middle">{{温度}}°</text>
+        <text x="75" y="268" fill="#1f2733" font-size="15" font-weight="800" text-anchor="middle">冷</text>
+        <text x="120" y="26" fill="#5b6675" font-size="10">100</text>
+        <text x="120" y="130" fill="#5b6675" font-size="10">50</text>
+        <text x="120" y="238" fill="#5b6675" font-size="10">0</text>
+      </svg>
+    </div>
+    <div class="dims">
+      <div class="dim"><span class="dk"><i style="background:var(--gold)"></i>涨停家数 {{涨停}}（较昨日{{涨停对比}}）</span><span class="lv mid">偏中性</span></div>
+      <div class="dim"><span class="dk"><i style="background:var(--green)"></i>跌停家数 {{跌停}}（较昨日{{跌停对比}}）</span><span class="lv down">分歧加大</span></div>
+      <div class="dim"><span class="dk"><i style="background:var(--gold)"></i>涨跌比 {{涨跌比}} / 上涨占比 {{上涨占比}}%</span><span class="lv mid">{{广度定性}}</span></div>
+      <div class="dim"><span class="dk"><i style="background:var(--green)"></i>成交额 {{成交亿}} 亿（{{量能定性}}）</span><span class="lv down">量能不足</span></div>
+      <div class="dim"><span class="dk"><i style="background:var(--green)"></i>封板率 {{封板率}}% / 连板晋级率~{{晋级率}}%</span><span class="lv down">连板退潮</span></div>
+      <div class="dim"><span class="dk"><i style="background:var(--red)"></i>创业板 {{创业涨跌幅}} / {{主线}}激活偏好</span><span class="lv up">局部偏多</span></div>
+      <div class="dim"><span class="dk"><i style="background:var(--red)"></i>PCR 认沽认购比（上证50ETF·{{PCR日期}}·滞后）</span><span class="lv up">{{PCR值}} · 看涨主导</span></div>
+      <div class="dim"><span class="dk"><i style="background:var(--gold)"></i>恐慌指数（韭圈儿·funddb.cn·更新{{恐慌更新}}）</span><span class="lv mid">{{恐慌指数}} · {{恐慌标签}}</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 模块三：主线资金 ===== -->
+<div class="module" id="m3"><span class="mno">3</span><div class="mt">主线资金<small>THEMES &amp; FLOWS</small></div><div class="line"></div></div>
+
+<section class="block">
+  <h2><span class="idx">3.1</span>板块强弱 · {{板块定性}}</h2>
+  <div class="note">{{板块note}}</div>
+  <div class="tabs" role="tablist" aria-label="板块强弱切换">
+    <button class="on" data-tab="strong" role="tab" aria-selected="true">🔥 强势主线</button>
+    <button data-tab="weak" role="tab" aria-selected="false">🪤 弱势/掉队</button>
+  </div>
+  <div class="tab-pane on" data-pane="strong" style="margin-top:12px">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>排名</th><th>板块</th><th>代表涨停</th><th>核心催化</th></tr></thead>
+        <tbody>
+          {{强势板块行}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="tab-pane" data-pane="weak" style="margin-top:12px">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>方向</th><th>代表标的</th><th class="r">表现</th><th>原因</th></tr></thead>
+        <tbody>
+          {{弱势板块行}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="disc">注：板块强弱来自通达信「涨停/跌停/连板」全扫描的题材聚类，行业精确主力净流入/流出数字未做全市场扫描，故以题材涨停维度呈现，不作为涨幅/资金净额的精确排名。</div>
+</section>
+
+<section class="block">
+  <h2><span class="idx">3.2</span>题材热度 · 连板与资金共振方向</h2>
+  <div class="note">{{题材note}}</div>
+  <div class="theme real">
+    <h3>🔥 {{真主线标题}}</h3>
+    <p>{{真主线内容}}</p>
+  </div>
+  <div class="theme mid">
+    <h3>⚡ {{轮动1标题}}</h3>
+    <p>{{轮动1内容}}</p>
+  </div>
+  <div class="theme mid">
+    <h3>⚡ {{轮动2标题}}</h3>
+    <p>{{轮动2内容}}</p>
+  </div>
+  <div class="theme mid">
+    <h3>⚡ {{轮动3标题}}</h3>
+    <p>{{轮动3内容}}</p>
+  </div>
+  <div class="theme trap">
+    <h3>🚩 掉队 / 风险预警</h3>
+    <p>{{风险预警内容}}</p>
+  </div>
+</section>
+
+<section class="block">
+  <h2><span class="idx">3.3</span>主力资金方向 · {{资金定性}}</h2>
+  <div class="note">{{资金note}}</div>
+  <div class="grid g3">
+    <div class="metric line-red" style="background:var(--red-soft)"><div class="k">{{吸金方向1}}</div><div class="v up num">最强</div><div class="d">{{吸金说明1}}</div></div>
+    <div class="metric line-red" style="background:var(--red-soft)"><div class="k">{{吸金方向2}}</div><div class="v up num">共振</div><div class="d">{{吸金说明2}}</div></div>
+    <div class="metric line-green" style="background:var(--green-soft)"><div class="k">{{派发方向}}</div><div class="v down num">派发</div><div class="d">{{派发说明}}</div></div>
+  </div>
+</section>
+
+<section class="block">
+  <h2><span class="idx">3.4</span>涨停梯队 · 连板明细（TDX 真实 + 妙想交叉验证）</h2>
+  <div class="note">{{梯队note}}</div>
+  <div class="grid g3">
+    <div class="metric line-red"><div class="k">{{N板标题}}</div><div class="v num" style="font-size:19px">{{N板内容}}</div><div class="d">{{N板说明}}</div></div>
+    <div class="metric line-red"><div class="k">{{M板标题}}</div><div class="v num" style="font-size:15px">{{M板内容}}</div><div class="d">{{M板说明}}</div></div>
+    <div class="metric line-red"><div class="k">{{2板标题}}</div><div class="v num" style="font-size:15px">{{2板内容}}</div><div class="d">{{2板说明}}</div></div>
+    <div class="metric line-green"><div class="k">断板警示（原连板·今日重挫）</div><div class="v down num" style="font-size:15px">{{断板内容}}</div><div class="d">{{断板说明}}</div></div>
+    <div class="metric line-gold"><div class="k">7天5板 / 5天2板</div><div class="v num" style="font-size:15px">{{多板内容}}</div><div class="d">{{多板说明}}</div></div>
+    <div class="metric line-ink"><div class="k">首板·强催化（部分）</div><div class="v num" style="font-size:15px">{{首板内容}}</div><div class="d">{{首板说明}}</div></div>
+  </div>
+  <div class="disc">注：连板明细取自通达信「涨停」扫描连续涨停天数 + 妙想(东财)自动化交叉验证；「X天Y板」为累计板数。昨日连板指数（880812）成分含已断板个股，非今日连板全量；上述明细为今日实际连板梯队与断板警示。</div>
+</section>
+
+<!-- ===== 模块四：决策输出 ===== -->
+<div class="module" id="m4"><span class="mno">4</span><div class="mt">决策输出<small>DECISION BRIEF</small></div><div class="line"></div></div>
+
+<section class="block">
+  <h2><span class="idx">4.1</span>主线识别 · 真主线 vs 退潮</h2>
+  <div class="theme real">
+    <h3>✅ 真主线（{{真主线定性}}）：{{真主线标题2}}</h3>
+    <p>{{真主线识别内容}}</p>
+  </div>
+  <div class="theme mid">
+    <h3>⚠️ 轮动支线：{{轮动支线标题}}</h3>
+    <p>{{轮动支线内容}}</p>
+  </div>
+  <div class="theme trap">
+    <h3>🚩 退潮 / 风险预警</h3>
+    <p>{{退潮风险内容}}</p>
+  </div>
+</section>
+
+<section class="block">
+  <h2><span class="idx">4.2</span>隔夜判断 · 非投资建议</h2>
+  <div class="alert ok">
+    <span class="ico">🔴</span>
+    <div><b class="up">偏多延续条件：</b>{{偏多条件}}</div>
+  </div>
+  <div class="alert warn">
+    <span class="ico">🟢</span>
+    <div><b class="down">退潮 / 预警信号：</b>
+      <ul style="margin-top:8px">
+        {{预警列表项}}
+      </ul>
+    </div>
+  </div>
+  <details style="margin-top:14px">
+    <summary>📄 免责声明与数据来源 <span class="arr">▾</span></summary>
+    <div class="body">免责声明：本页数据来自通达信(TDX)全市场扫描与公开聚合源（东财/妙想自动化/新华社/证券时报/数据宝）{{YYYYMMDD}} 真实收盘，指数/板块/主力资金/融资余额取自 TDX 收盘值与东财/公开聚合交叉验证，外围（{{外围日期}} 美股：道指+{{道指涨}}%/纳指+{{纳指涨}}%/标普+{{标普涨}}%，新华社/证券时报）与全市场融资余额（T+1 前日 {{融资余额日期}}，东方财富全市场口径 {{融资余额}} 亿）来自公开聚合源，框架参考 i问财「市场情绪分析」。情绪温度（{{温度}}°）为基于公开广度指标的量化估算；PCR（上交所 {{PCR日期}} 期权认沽认购比 {{PCR值}}）已补入情绪温度并标注滞后；<b>北向资金净额自 2024-08-19 官方取消日频披露，本报告不含该字段</b>；行业精确主力净流入/流出数字未做全市场扫描，第 3.1/3.3 节以题材涨停聚类与封单维度呈现，不编造具体净额；恐慌指数取自韭圈儿（funddb.cn），最新更新 {{恐慌更新}}（{{恐慌指数}}·{{恐慌标签}}，本交易日盘前最新可得），已补入第 2.3 节。内容仅作复盘研究，<b>不构成任何投资建议</b>。</div>
+  </details>
+</section>
+
+<div class="footer">
+  A股主线与情绪复盘 · 标准模板 V3（UI 视觉语言回填版）<br>
+  <b>数据：</b>{{YYYYMMDD}} 真实收盘 ｜ <b>规范：</b>浅色主题 · 涨红跌绿 · 数值信号色(涨红/跌绿/中性黄) · 量能(放量红/缩量绿/持平墨) ｜ <b>铁律：</b>零外链 · 零编造 ｜ <b>结构：</b>4 模块 12 节
+</div>
+
+</div><!-- /wrap -->
+
+<button class="totop" id="totop" aria-label="返回顶部">↑</button>
+
+<script>
+(function(){
+  /* 温度计 + 半弧仪表盘：按 data-temp 自动定位（保证指针/液柱与色带、数值严格对齐） */
+  function setupThermo(svg){
+    var T=parseFloat(svg.getAttribute('data-temp'));
+    if(isNaN(T)) return; // 保留静态兜底（52°）
+    var fillTop=240-(T/100)*220, fillH=(T/100)*220;
+    svg.querySelector('.tg-fill').setAttribute('y',fillTop.toFixed(1));
+    svg.querySelector('.tg-fill').setAttribute('height',fillH.toFixed(1));
+    svg.querySelector('.tg-line').setAttribute('y1',fillTop.toFixed(1));
+    svg.querySelector('.tg-line').setAttribute('y2',fillTop.toFixed(1));
+    var n=svg.querySelector('.tg-num'); n.setAttribute('y',(fillTop-4).toFixed(1)); n.textContent=Math.round(T)+'°';
+  }
+  function setupArc(svg){
+    var T=parseFloat(svg.getAttribute('data-temp'));
+    if(isNaN(T)) return;
+    var theta=Math.PI*(1-T/100), L=62;
+    svg.querySelector('.gauge-needle').setAttribute('x2',(98+L*Math.cos(theta)).toFixed(1));
+    svg.querySelector('.gauge-needle').setAttribute('y2',(104-L*Math.sin(theta)).toFixed(1));
+    svg.querySelector('.gauge-fill').setAttribute('stroke-dashoffset',(251.3*(1-T/100)).toFixed(1));
+    var t=svg.querySelector('.gauge-val'); if(t) t.textContent=Math.round(T)+'°';
+  }
+  document.querySelectorAll('svg.gauge-thermo').forEach(setupThermo);
+  document.querySelectorAll('svg.gauge-arc').forEach(setupArc);
+
+  /* 模块 scrollspy 高亮 */
+  var links=document.querySelectorAll('.modnav a');
+  if('IntersectionObserver' in window){
+    var obs=new IntersectionObserver(function(es){es.forEach(function(e){
+      if(e.isIntersecting){links.forEach(function(l){l.classList.toggle('active',l.getAttribute('data-sec')===e.target.id)});}
+    });},{rootMargin:'-30% 0px -60% 0px'});
+    document.querySelectorAll('.module').forEach(function(s){obs.observe(s)});
+  }
+
+  /* 返回顶部 */
+  var tp=document.getElementById('totop');
+  addEventListener('scroll',function(){tp.classList.toggle('show',scrollY>560)},{passive:true});
+  tp.addEventListener('click',function(){scrollTo({top:0,behavior:'smooth'})});
+
+  /* Tab 切换（板块强弱） */
+  document.querySelectorAll('.tabs button').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      document.querySelectorAll('.tabs button').forEach(function(b){b.classList.remove('on');b.setAttribute('aria-selected','false');});
+      btn.classList.add('on');btn.setAttribute('aria-selected','true');
+      document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.toggle('on',p.getAttribute('data-pane')===btn.getAttribute('data-tab'));});
+    });
+  });
+})();
+</script>
+</body>
+</html>
