@@ -1,0 +1,11 @@
+# 依赖（fetch_fear.js 需要 crypto-js）
+node_modules/
+
+# 生成的报告产物（不入库，避免污染仓库）
+A股主线与情绪复盘_*.html
+market-sentiment-*.html
+
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+*.log
