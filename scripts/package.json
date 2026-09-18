@@ -1,0 +1,9 @@
+{
+  "name": "ashare-daily-review-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A股每日复盘取数脚本：融资余额(fetch_margin.js) / 恐贪指数(fetch_fear.js)",
+  "dependencies": {
+    "crypto-js": "^4.2.0"
+  }
+}
