@@ -3,7 +3,7 @@
 > 零代码股票研究员 · 每日 A 股「主线与情绪复盘」单页 HTML 报告生成工作流（V3 视觉语言）
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![Platform](https://img.shields.io/badge/platform-WorkBuddy%20%2F%20SkillHub-green)
+![Platform](https://img.shields.io/badge/platform-WorkBuddy%20%2F%20Codex%20%2F%20Claude-green)
 ![Language](https://img.shields.io/badge/语言-中文-red)
 ![License](https://img.shields.io/badge/license-MIT-yellow)
 
@@ -22,6 +22,8 @@
 
 报告 **纯内联、零外部依赖**（禁 ECharts / CDN / 外链 `<script>`），可双击打开、可直接分享。
 
+> 本 Skill 采用标准 `SKILL.md` 格式，**与智能体无关（agent-agnostic）**：WorkBuddy、Codex、Claude 等支持 Skill 的 Agent 都能安装使用。
+
 ---
 
 ## ✨ 特性
@@ -29,7 +31,7 @@
 - **真实数据优先**：凡不可得一律诚实留白或删节，绝不臆造（北向资金已永久剔除）
 - **涨红跌绿**：符合中国 A 股惯例的数值涨跌配色
 - **信号语义层配色**：偏多=红 / 风险=绿 / 中性=黄（与数值涨跌色同源但语义分离）
-- **数值信号色（V3 核心）**&#8203;：Metric 卡数值自动继承父卡信号类，左侧竖条 / 数值 / 标签三者同色
+- **数值信号色（V3 核心）**：Metric 卡数值自动继承父卡信号类，左侧竖条 / 数值 / 标签三者同色
 - **量能独立规则**：放量=红 / 缩量=绿 / 持平=墨（缩量不填中性黄）
 - **纯内联交互**：粘性导航 scrollspy、Hero 半弧仪表盘、竖温度计 SVG、Tab 切换、`details` 折叠、返回顶部，全部内联 JS
 - **数据源交叉验证**：TDX 真实源 + 东方财富 / 公开聚合，融资余额以东财口径为准
@@ -38,48 +40,49 @@
 
 ## 📁 目录结构
 
-
-
 ```
 ashare-daily-review/
 ├── SKILL.md                 # Skill 主体（触发词、铁律、流程、数据源分工）
 ├── README.md                # 本文件
+├── LICENSE                  # MIT 许可证
+├── .gitignore
 ├── references/
 │   ├── conventions.md       # 配色规范 + 数据约定速查
-│   └── funddb-cdp.md        # 韭圈儿恐贪指数取数完整经验
+│   └── funddb-cdp.md        # 韭圈儿恐贪指数取数完整经验（旧方案备查）
 ├── templates/
 │   └── daily-review.html    # V3 视觉语言报告模板（含 {{...}} 占位符）
 └── scripts/
     ├── fetch_margin.js      # 融资融券余额抓取（纯 Node，无依赖）
-    └── fetch_fear.js        # 恐贪指数抓取（需 crypto-js）
+    ├── fetch_fear.js        # 恐贪指数抓取（需 crypto-js）
+    └── package.json         # 脚本依赖声明
 ```
 
 ---
 
 ## 🔧 安装
 
-### 方式一：SkillHub 一键安装
+> 本 Skill 采用标准 `SKILL.md` 格式，**与智能体无关**：WorkBuddy、Codex、Claude 等支持 Skill 的 Agent 都能安装。
 
-按 https://skillhub.cn/install/skillhub.md 的说明，安装：
-
-```
-@user_b18dc546/ashare-daily-review
-```
-
-### 方式二：手动安装（Git Clone）
+### 方式一：通过 GitHub 连接安装（推荐）
 
 ```bash
 # 1. 克隆本仓库
-git clone https://github.com/<你的用户名>/ashare-daily-review.git
+git clone https://github.com/sansuo33/ashare-daily-review.git
 
-# 2. 软链或复制到 WorkBuddy 用户级 skill 目录
-#    Windows:
+# 2. 把整个仓库放进对应 Agent 的 skills 目录
+#    WorkBuddy (Windows):
 mklink /D "%USERPROFILE%\.workbuddy\skills\ashare-daily-review" "<仓库路径>\ashare-daily-review"
-#    macOS / Linux:
-ln -s "<仓库路径>/ashare-daily-review" ~/.workbuddy/skills/ashare-daily-review
+#    Claude Code (macOS/Linux):
+ln -s "<仓库路径>/ashare-daily-review" ~/.claude/skills/ashare-daily-review
+#    Codex (macOS/Linux):
+ln -s "<仓库路径>/ashare-daily-review" ~/.codex/skills/ashare-daily-review
 ```
 
-> 用户级 Skill 必须放在 `~/.workbuddy/skills/` 下才能被 WorkBuddy 加载。
+> 各 Agent 的 skills 目录可能随版本微调，以对应 Agent 官方文档为准；放入后重启 Agent 即可识别本 Skill。
+
+### 方式二：SkillHub（备选）
+
+按 https://skillhub.cn/install/skillhub.md 的说明安装 `@sansuo33/ashare-daily-review`。
 
 ---
 
@@ -88,9 +91,9 @@ ln -s "<仓库路径>/ashare-daily-review" ~/.workbuddy/skills/ashare-daily-revi
 | 依赖 | 用途 | 安装 |
 |------|------|------|
 | Node.js ≥ 18 | 运行取数脚本 | https://nodejs.org |
-| `crypto-js` | `fetch_fear.js` 解密恐贪指数 | `npm install crypto-js`（在 `scripts/` 目录内执行） |
-| WorkBuddy / SkillHub | 加载并运行 Skill | 已安装 |
-| TDX 连接器（mcp__tdx-connector） | 指数 / 广度 / 涨停跌停等真实源 | 在 WorkBuddy 中注册 |
+| `crypto-js` | `fetch_fear.js` 解密恐贪指数 | `npm install`（在 `scripts/` 目录内，见 `scripts/package.json`） |
+| 支持 Skill 的 Agent（WorkBuddy / Codex / Claude 等） | 加载并运行 Skill | 已安装 |
+| TDX 连接器（mcp__tdx-connector，WorkBuddy 环境） | 指数 / 广度 / 涨停跌停等真实源 | 在 WorkBuddy 中注册 |
 
 > `fetch_margin.js` 仅用 Node 内置模块，**无需** `npm install`。
 
@@ -100,7 +103,7 @@ ln -s "<仓库路径>/ashare-daily-review" ~/.workbuddy/skills/ashare-daily-revi
 
 ### 触发方式
 
-对 WorkBuddy 说类似：
+对 Agent（WorkBuddy / Codex / Claude 等）说类似：
 
 > 「完成今日 A 股主线与情绪复盘」
 
@@ -169,8 +172,8 @@ node fetch_margin.js --last 5 # 输出最近 5 日
 
 ```bash
 cd scripts
-npm install crypto-js
-node fetch_fear.js             # 输出 JSON：{num, status_str, current_time, ...}
+npm install        # 安装 crypto-js（按 package.json）
+node fetch_fear.js # 输出 JSON：{num, status_str, current_time, ...}
 ```
 
 > 分位（韭圈儿标尺）：0–20 极度恐惧 / 20–40 恐惧 / 40–70 中立 / 70–90 贪婪 / 90+ 极度贪婪。取不到真实值时第 6 节标「待补」，不编造。
@@ -182,10 +185,10 @@ node fetch_fear.js             # 输出 JSON：{num, status_str, current_time, .
 | 字段 | 数据源 | 备注 |
 |------|--------|------|
 | 指数 / 广度 / 涨停跌停炸板连板 | 通达信 TDX 连接器 | 首选真实源 |
-| 融资余额 | 东方财富 `fetch_margin.js` | T+1，以东财口径为准 |
+| 融资余额 | 东方财富 `scripts/fetch_margin.js` | T+1，以东财口径为准 |
 | 外围（前日美股） | WebSearch / 公开报道 | 取道指 / 纳指 / 标普 |
 | PCR 认沽认购比 | 上交所期权日报 | 可得，标注滞后 |
-| 恐慌指数 | 韭圈儿 `fetch_fear.js` | API + AES 直解 |
+| 恐慌指数 | 韭圈儿 `scripts/fetch_fear.js` | API + AES 直解 |
 | 北向资金净额 | — | 永久剔除 |
 
 ---
@@ -202,14 +205,14 @@ node fetch_fear.js             # 输出 JSON：{num, status_str, current_time, .
 <details>
 <summary><b>融资余额和别处对不上？</b></summary>
 
-妙想（mx-finance-data）对全市场融资余额口径系统性低估约 1150 亿，一律以 `fetch_margin.js` 实抓的东财口径为准。数据为 T+1，比报告交易日晚 1 日属正常。
+妙想（mx-finance-data）对全市场融资余额口径系统性低估约 1150 亿，一律以 `scripts/fetch_margin.js` 实抓的东财口径为准。数据为 T+1，比报告交易日晚 1 日属正常。
 
 </details>
 
 <details>
 <summary><b>恐贪指数取不到？</b></summary>
 
-`fetch_fear.js` 依赖第三方 API 与密钥材料，若接口变动导致解密失败，第 6 节标「待补」即可，切勿编造数值。
+`scripts/fetch_fear.js` 依赖第三方 API 与密钥材料，若接口变动导致解密失败，第 6 节标「待补」即可，切勿编造数值。
 
 </details>
 
@@ -224,9 +227,3 @@ node fetch_fear.js             # 输出 JSON：{num, status_str, current_time, .
 ## 📄 许可证
 
 本项目采用 [MIT 许可证](LICENSE)。
-```
-
-
-> 另外建议在 GitHub 网页端用 **Add file → Create new file → 命名为 `LICENSE`**，GitHub 会弹出许可证选择器，选 MIT 即可（README 末尾已链接 `LICENSE`）。若 `scripts/` 里执行了 `npm install`，记得加一个 `.gitignore` 忽略 `node_modules/`。
-
-需要的话，我可以直接帮你在 skill 目录里生成 README.md、复制脚本并改好 SKILL.md 路径——你说一声即可。
