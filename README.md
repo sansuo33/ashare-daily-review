@@ -3,7 +3,7 @@
 > 零代码股票研究员 · 每日 A 股「主线与情绪复盘」单页 HTML 报告生成工作流（V3 视觉语言）
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![Platform](https://img.shields.io/badge/platform-WorkBuddy%20%2F%20SkillHub-green)
+![Platform](https://img.shields.io/badge/platform-WorkBuddy%20%2F%20Codex%20%2F%20Claude-green)
 ![Language](https://img.shields.io/badge/语言-中文-red)
 ![License](https://img.shields.io/badge/license-MIT-yellow)
 
@@ -21,6 +21,8 @@
 - 两个取数脚本（`scripts/fetch_margin.js` / `scripts/fetch_fear.js`）
 
 报告 **纯内联、零外部依赖**（禁 ECharts / CDN / 外链 `<script>`），可双击打开、可直接分享。
+
+> 本 Skill 采用标准 `SKILL.md` 格式，**与智能体无关（agent-agnostic）**：WorkBuddy、Codex、Claude 等支持 Skill 的 Agent 都能安装使用。
 
 ---
 
@@ -59,28 +61,28 @@ ashare-daily-review/
 
 ## 🔧 安装
 
-### 方式一：SkillHub 一键安装
+> 本 Skill 采用标准 `SKILL.md` 格式，**与智能体无关**：WorkBuddy、Codex、Claude 等支持 Skill 的 Agent 都能安装。
 
-按 https://skillhub.cn/install/skillhub.md 的说明，安装：
-
-```
-@user_b18dc546/ashare-daily-review
-```
-
-### 方式二：手动安装（Git Clone）
+### 方式一：通过 GitHub 连接安装（推荐）
 
 ```bash
 # 1. 克隆本仓库
-git clone https://github.com/<你的用户名>/ashare-daily-review.git
+git clone https://github.com/sansuo33/ashare-daily-review.git
 
-# 2. 软链或复制到 WorkBuddy 用户级 skill 目录
-#    Windows:
+# 2. 把整个仓库放进对应 Agent 的 skills 目录
+#    WorkBuddy (Windows):
 mklink /D "%USERPROFILE%\.workbuddy\skills\ashare-daily-review" "<仓库路径>\ashare-daily-review"
-#    macOS / Linux:
-ln -s "<仓库路径>/ashare-daily-review" ~/.workbuddy/skills/ashare-daily-review
+#    Claude Code (macOS/Linux):
+ln -s "<仓库路径>/ashare-daily-review" ~/.claude/skills/ashare-daily-review
+#    Codex (macOS/Linux):
+ln -s "<仓库路径>/ashare-daily-review" ~/.codex/skills/ashare-daily-review
 ```
 
-> 用户级 Skill 必须放在 `~/.workbuddy/skills/` 下才能被 WorkBuddy 加载。
+> 各 Agent 的 skills 目录可能随版本微调，以对应 Agent 官方文档为准；放入后重启 Agent 即可识别本 Skill。
+
+### 方式二：SkillHub（备选）
+
+按 https://skillhub.cn/install/skillhub.md 的说明安装 `@sansuo33/ashare-daily-review`。
 
 ---
 
@@ -90,8 +92,8 @@ ln -s "<仓库路径>/ashare-daily-review" ~/.workbuddy/skills/ashare-daily-revi
 |------|------|------|
 | Node.js ≥ 18 | 运行取数脚本 | https://nodejs.org |
 | `crypto-js` | `fetch_fear.js` 解密恐贪指数 | `npm install`（在 `scripts/` 目录内，见 `scripts/package.json`） |
-| WorkBuddy / SkillHub | 加载并运行 Skill | 已安装 |
-| TDX 连接器（mcp__tdx-connector） | 指数 / 广度 / 涨停跌停等真实源 | 在 WorkBuddy 中注册 |
+| 支持 Skill 的 Agent（WorkBuddy / Codex / Claude 等） | 加载并运行 Skill | 已安装 |
+| TDX 连接器（mcp__tdx-connector，WorkBuddy 环境） | 指数 / 广度 / 涨停跌停等真实源 | 在 WorkBuddy 中注册 |
 
 > `fetch_margin.js` 仅用 Node 内置模块，**无需** `npm install`。
 
@@ -101,7 +103,7 @@ ln -s "<仓库路径>/ashare-daily-review" ~/.workbuddy/skills/ashare-daily-revi
 
 ### 触发方式
 
-对 WorkBuddy 说类似：
+对 Agent（WorkBuddy / Codex / Claude 等）说类似：
 
 > 「完成今日 A 股主线与情绪复盘」
 
